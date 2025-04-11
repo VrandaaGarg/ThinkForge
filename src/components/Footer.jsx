@@ -20,7 +20,7 @@ const Footer = () => {
   const socialLinks = [
     { 
       icon: <RiGithubFill className="w-6 h-6" />, 
-      href: 'https://github.com/Glucon-D/thinkforge',
+      href: 'https://github.com/vrandaagarg/thinkforge',
       label: 'GitHub'
     },
     { 
