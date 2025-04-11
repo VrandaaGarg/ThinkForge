@@ -11,6 +11,7 @@ const Dashboard = () => {
   const [paths, setPaths] = useState([]);
   const [flashcardCount, setFlashcardCount] = useState(0);
   const [quizScores, setQuizScores] = useState([]);
+  const [currentStreak, setCurrentStreak] = useState(0); // Add this state
 
   useEffect(() => {
     fetchUserProgress();
@@ -24,13 +25,34 @@ const Dashboard = () => {
 
       setFlashcardCount(progress.flashcardCount || 0);
 
-      // Ensure quizScores is safely parsed
+      // Parse quiz scores and calculate streak
       let parsedQuizScores = [];
       if (progress.quizScores) {
         try {
           parsedQuizScores = Array.isArray(progress.quizScores)
             ? progress.quizScores // If already an array, use it directly
             : JSON.parse(progress.quizScores); // Otherwise, parse it
+
+          // Calculate streak from quiz dates
+          const dates = parsedQuizScores.map(q => new Date(q.date).toDateString());
+          const uniqueDates = [...new Set(dates)].sort((a, b) => new Date(b) - new Date(a));
+          
+          let streak = 0;
+          const today = new Date().toDateString();
+          const yesterday = new Date(Date.now() - 86400000).toDateString();
+          
+          if (uniqueDates[0] === today || uniqueDates[0] === yesterday) {
+            streak = 1;
+            for (let i = 1; i < uniqueDates.length; i++) {
+              const dateDiff = Math.round(
+                (new Date(uniqueDates[i-1]) - new Date(uniqueDates[i])) / 86400000
+              );
+              if (dateDiff === 1) streak++;
+              else break;
+            }
+          }
+          
+          setCurrentStreak(streak);
         } catch (error) {
           console.error("Error parsing quizScores JSON:", error);
         }
@@ -72,98 +94,153 @@ const Dashboard = () => {
   const cards = [
     {
       title: "Continue Learning",
-      description: "Resume your learning journey",
+      description: "Pick up where you left off",
       icon: "📚",
-      color: "from-purple-500 to-purple-600",
+      gradient: "from-blue-500 to-indigo-500",
       path: "/learning-path",
-      stats: `${
-        paths.filter((path) => path.progress < 100).length
-      } paths in progress`, // ✅ Fix: Remove extra {}
+      stats: `${paths.filter((path) => path.progress < 100).length} paths in progress`,
     },
-
     {
       title: "Flashcards",
-      description: "Practice with your decks",
+      description: "Review and memorize concepts",
       icon: "🗂️",
-      color: "from-indigo-500 to-indigo-600",
+      gradient: "from-purple-500 to-pink-500",
       path: "/flashcards",
       stats: `${flashcardCount} cards mastered`,
     },
     {
       title: "Quiz Performance",
-      description: "Track your quiz scores",
+      description: "Test your knowledge",
       icon: "📊",
-      color: "from-violet-500 to-violet-600",
+      gradient: "from-indigo-500 to-blue-500",
       path: "/quiz",
       stats: `${calculateSuccessRate()}% success rate`,
     },
   ];
 
   const quickActions = [
-    { icon: "🎯", label: "New Learning Path", path: "/learning-path" },
-    { icon: "🗂️", label: "Create Flashcards", path: "/flashcards" },
-    { icon: "📝", label: "Take Quiz", path: "/quiz" },
-    { icon: "📈", label: "View Progress", path: "/progress" },
+    { 
+      icon: "🎯", 
+      label: "New Path",
+      description: "Start a learning journey",
+      path: "/learning-path",
+      gradient: "from-blue-600 to-indigo-600"
+    },
+    { 
+      icon: "🗂️", 
+      label: "Flashcards",
+      description: "Create study cards",
+      path: "/flashcards",
+      gradient: "from-indigo-600 to-purple-600"
+    },
+    { 
+      icon: "📝", 
+      label: "Quiz",
+      description: "Test your knowledge",
+      path: "/quiz",
+      gradient: "from-purple-600 to-pink-600"
+    },
+    { 
+      icon: "📈", 
+      label: "Progress",
+      description: "Track your growth",
+      path: "/progress",
+      gradient: "from-pink-600 to-rose-600"
+    },
   ];
 
   return (
-    <div className="flex-1 max-w-full p-2 md:p-6 overflow-x-hidden">
+    <div className="flex-1 max-w-full p-4 md:p-8 overflow-x-hidden bg-gradient-to-br from-gray-50 to-blue-50">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="max-w-7xl mx-auto space-y-8"
       >
-        {/* Welcome Section */}
+        {/* Enhanced Welcome Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-2xl p-8 text-white shadow-lg"
+          className="relative overflow-hidden bg-white/30 backdrop-blur-md rounded-3xl p-8 shadow-lg border border-white/50"
         >
-          <h1 className="text-3xl font-bold text-white bg-clip-text text-transparent">
-            Welcome back, {user?.name?.split(" ")[0] || "Learner"}! 👋
-          </h1>
-          <p className="text-purple-100">
-            Ready to continue your learning journey?
-          </p>
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-indigo-600/10" />
+          <div className="relative">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+            >
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Welcome back, {user?.name?.split(" ")[0] || "Learner"}! 👋
+                </h1>
+                <p className="text-gray-600">
+                  Ready to continue your learning journey?
+                </p>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="px-4 py-2 bg-blue-100 text-blue-600 rounded-xl">
+                  Today's Streak: 🔥 {currentStreak} days
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </motion.div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+        {/* Enhanced Quick Actions */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action, index) => (
             <motion.button
               key={index}
               onClick={() => navigate(action.path)}
-              whileHover={{ scale: 1.02 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ scale: 1.02, y: -5 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-3 p-2 md:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all"
+              className="group relative overflow-hidden bg-white/50 backdrop-blur-sm p-6 rounded-2xl border border-white/50 shadow-lg transition-all duration-300"
             >
-              <span className="text-2xl">{action.icon}</span>
-              <span className="text-sm font-medium text-gray-700">
-                {action.label}
-              </span>
+              <div className={`absolute inset-0 bg-gradient-to-r ${action.gradient} opacity-0 group-hover:opacity-10 transition-opacity`} />
+              <div className="relative space-y-3">
+                <span className="text-3xl">{action.icon}</span>
+                <div>
+                  <h3 className="font-semibold text-gray-900">{action.label}</h3>
+                  <p className="text-sm text-gray-600">{action.description}</p>
+                </div>
+              </div>
             </motion.button>
           ))}
         </div>
 
-        {/* Main Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Enhanced Main Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((card, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ 
+                scale: 1.02,
+                boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
+              }}
               onClick={() => navigate(card.path)}
-              className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all cursor-pointer"
+              className="group relative overflow-hidden bg-white/60 backdrop-blur-sm p-6 rounded-2xl border border-white/50 shadow-lg transition-all duration-300 cursor-pointer"
             >
-              <div className="text-3xl mb-4">{card.icon}</div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                {card.title}
-              </h2>
-              <p className="text-gray-600 mb-4">{card.description}</p>
-              <div className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full inline-block">
-                {card.stats}
+              <div className={`absolute inset-0 bg-gradient-to-r ${card.gradient} opacity-0 group-hover:opacity-10 transition-opacity`} />
+              <div className="relative space-y-4">
+                <div className="text-4xl group-hover:scale-110 transition-transform">
+                  {card.icon}
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {card.title}
+                  </h2>
+                  <p className="text-gray-600">{card.description}</p>
+                </div>
+                <div className="inline-flex items-center gap-2 text-sm font-medium px-3 py-1 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600">
+                  {card.stats}
+                </div>
               </div>
             </motion.div>
           ))}
